@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: agriconnect-dataschedule
+
+server:
+  port: 10006
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
