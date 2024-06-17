@@ -1,6 +1,7 @@
 package ag.agriconnectdataschedule.metier;
 
 import ag.agriconnectdataschedule.entities.Capteur;
+import ag.agriconnectdataschedule.entities.Limite;
 import ag.agriconnectdataschedule.entities.Releve;
 import jakarta.annotation.PostConstruct;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -18,18 +19,22 @@ public class SchedulerService {
 
     private final CapteurServiceClient capteurServiceClient;
     private final ReleveServiceClient releveServiceClient;
+    private final LimiteurServiceClient limiteurServiceClient;
+    private final ActionneurServiceClient actionneurServiceClient;
 
     private final ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
     private final Map<Long, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
 
-    public SchedulerService(CapteurServiceClient capteurServiceClient, ReleveServiceClient releveServiceClient) {
+    public SchedulerService(CapteurServiceClient capteurServiceClient, ReleveServiceClient releveServiceClient, LimiteurServiceClient limiteurServiceClient, ActionneurServiceClient actionneurServiceClient) {
         this.capteurServiceClient = capteurServiceClient;
         this.releveServiceClient = releveServiceClient;
+        this.limiteurServiceClient = limiteurServiceClient;
+        this.actionneurServiceClient = actionneurServiceClient;
     }
 
     @PostConstruct
     public void init() {
-        taskScheduler.setPoolSize(10);
+        taskScheduler.setPoolSize(100);
         taskScheduler.initialize();
         scheduleAllSensors(); // Planifier la collecte pour tous les capteurs au démarrage
     }
@@ -63,14 +68,38 @@ public class SchedulerService {
         Random random = new Random();
         int humidityVariation = random.nextInt(-2, 2);
         int humidity = capteur.getHumidite() + humidityVariation;
-        double tempVariation = random.nextGaussian() * 2;
-        double temp = capteur.getTemperature() * tempVariation;
+        double tempVariation = -3 + 6 * random.nextDouble();
+        double temp = capteur.getTemperature() - tempVariation;
+
+        createReleve(humidity, temp, capteur.getId());
+        gestionCapteurLimite(humidity, temp, capteur.getId());
+
+    }
+
+    private void createReleve(int humidity, double temperature, Long idCapteur) {
+        Random random = new Random();
         Releve releve = new Releve();
         releve.setDateReleve(LocalDate.now());
         releve.setHumitide(humidity);
-        releve.setTemperature(temp);
-        releve.setIdCapteur(capteur.getId());
+        releve.setTemperature(temperature);
+        releve.setIdCapteur(idCapteur);
         releve.setId(random.nextInt(Integer.MAX_VALUE));
         releveServiceClient.addReleve(releve);
+    }
+
+    private void gestionCapteurLimite(int humidity, double temperature, Long idCapteur){
+        Limite limite = limiteurServiceClient.getLimiteByIdCapteur(idCapteur);
+        if (limite != null){
+            if (limite.getLimitHum() != null){
+                if (limite.getLimitHum()< humidity){
+                    actionneurServiceClient.triggerActionneur(limite.getIdActionneurHum(), limite.getDureeActionneurHum());
+                }
+            }
+            if (limite.getLimitTemp() != null) {
+                if (limite.getLimitTemp() < temperature) {
+                    actionneurServiceClient.triggerActionneur(limite.getIdActionneurTemp(), limite.getDureeActionneurTemp());
+                }
+            }
+        }
     }
 }
