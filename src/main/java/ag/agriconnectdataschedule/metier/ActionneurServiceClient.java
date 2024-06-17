@@ -2,15 +2,12 @@ package ag.agriconnectdataschedule.metier;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-
+import org.springframework.web.bind.annotation.*;
 
 
 @FeignClient(name = "acactionneurs")
 public interface ActionneurServiceClient {
 
-    @PostMapping("/api/actionneurs/trigger/{id}")
+    @RequestMapping(value = "/api/actionneurs/trigger/{id}", method = RequestMethod.POST)
     ResponseEntity<String> triggerActionneur(@PathVariable Long id, @RequestParam Long duration);
 }
