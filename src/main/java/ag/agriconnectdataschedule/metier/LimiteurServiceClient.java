@@ -1,16 +1,16 @@
 package ag.agriconnectdataschedule.metier;
 
-import ag.agriconnectdataschedule.entities.Capteur;
 import ag.agriconnectdataschedule.entities.Limite;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
-import java.util.List;
 
 @FeignClient(name = "aclimiteur")
 public interface LimiteurServiceClient {
 
-    @GetMapping("/api/limites/capteur/{idCapteur}")
+    @RequestMapping(value = "/api/limites/capteur/{idCapteur}", method = RequestMethod.GET)
     Limite getLimiteByIdCapteur(@PathVariable Long idCapteur);
 }
